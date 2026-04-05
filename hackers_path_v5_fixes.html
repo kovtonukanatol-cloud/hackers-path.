@@ -1,0 +1,708 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Share Tech Mono',monospace;background:#000;color:#00ff41;}
+#game{width:100%;max-width:860px;height:720px;position:relative;overflow:hidden;background:#050f05;margin:0 auto;}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;}
+.screen.active{display:flex;}
+#game::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);pointer-events:none;z-index:9999;}
+.glow{text-shadow:0 0 20px #00ff41,0 0 40px #00aa2a;}
+@keyframes flicker{0%,98%,100%{opacity:1;}99%{opacity:0.7;}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+@keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-5px);}75%{transform:translateX(5px);}}
+.grid-bg{position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,65,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,0.04) 1px,transparent 1px);background-size:40px 40px;}
+.btn{background:transparent;border:1px solid #00ff41;color:#00ff41;font-family:'Share Tech Mono',monospace;font-size:14px;padding:12px 22px;cursor:pointer;letter-spacing:3px;transition:all 0.15s;text-align:left;}
+.btn::before{content:'> ';opacity:0;transition:opacity 0.15s;}
+.btn:hover{background:rgba(0,255,65,0.1);box-shadow:0 0 12px rgba(0,255,65,0.3);letter-spacing:4px;}
+.btn:hover::before{opacity:1;}
+.btn:active{transform:scale(0.97);}
+.btn-sm{background:transparent;border:1px solid #007a1f;color:#007a1f;font-family:'Share Tech Mono',monospace;font-size:12px;padding:7px 14px;cursor:pointer;letter-spacing:2px;transition:all 0.15s;}
+.btn-sm:hover{border-color:#00ff41;color:#00ff41;}
+.title-orb{font-family:'Orbitron',monospace;font-weight:700;color:#00ff41;letter-spacing:8px;animation:flicker 3s infinite;}
+.stats-bar{display:flex;gap:28px;background:rgba(0,255,65,0.05);border:1px solid rgba(0,255,65,0.2);padding:10px 24px;}
+.stat{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.stat-lbl{font-size:10px;color:#007a1f;letter-spacing:2px;}
+.stat-val{font-size:18px;color:#00ff41;font-family:'Orbitron',monospace;}
+.risk-wrap{width:260px;}
+.risk-lbl{display:flex;justify-content:space-between;font-size:11px;color:#007a1f;margin-bottom:3px;letter-spacing:2px;}
+.risk-bar{height:8px;background:rgba(0,255,65,0.08);border:1px solid rgba(0,255,65,0.3);}
+.risk-fill{height:100%;background:#00ff41;transition:width 0.4s;}
+.risk-fill.warn{background:#ff6600;}
+.risk-fill.dang{background:#ff0000;}
+.badge{font-size:10px;letter-spacing:1px;padding:2px 8px;border:1px solid;}
+.bg-green{color:#007a1f;border-color:#007a1f;}
+.bg-blue{color:#00aaff;border-color:#00aaff;}
+.bg-yellow{color:#ffaa00;border-color:#ffaa00;}
+
+/* login */
+#login{background:radial-gradient(ellipse at 50% 50%,#001a0a,#000);}
+#login .content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:26px;}
+.login-box{border:1px solid rgba(0,255,65,0.3);padding:28px 34px;display:flex;flex-direction:column;gap:18px;width:320px;background:rgba(0,0,0,0.7);}
+.flbl{font-size:11px;color:#007a1f;letter-spacing:3px;margin-bottom:4px;}
+.finput{background:rgba(0,255,65,0.05);border:1px solid rgba(0,255,65,0.3);color:#00ff41;font-family:'Share Tech Mono',monospace;font-size:14px;padding:9px 12px;outline:none;width:100%;}
+.finput:focus{border-color:#00ff41;}
+.finput::placeholder{color:#003a0f;}
+.lang-row{display:flex;}
+.lbtn{flex:1;background:transparent;border:1px solid rgba(0,255,65,0.25);color:#007a1f;font-family:'Share Tech Mono',monospace;font-size:12px;padding:8px 4px;cursor:pointer;border-right:none;transition:all 0.12s;}
+.lbtn:last-child{border-right:1px solid rgba(0,255,65,0.25);}
+.lbtn.on{background:rgba(0,255,65,0.12);border-color:#00ff41;color:#00ff41;}
+.lerr{font-size:11px;color:#ff3333;letter-spacing:2px;min-height:14px;text-align:center;}
+
+/* hub */
+#hub{background:radial-gradient(ellipse at 30% 50%,#001a0a,#000a03 60%,#000);}
+#hub .content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;}
+.hub-btns{display:flex;flex-direction:column;gap:10px;width:240px;}
+.alert-banner{background:rgba(255,50,0,0.1);border:1px solid #ff3300;color:#ff5500;font-size:11px;letter-spacing:2px;padding:7px 18px;text-align:center;animation:pulse 1s infinite;}
+
+/* target select */
+#target-select{background:#000a03;}
+#target-select .content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:20px;}
+.screen-title{font-family:'Orbitron',monospace;font-size:15px;letter-spacing:5px;color:#00ff41;border-bottom:1px solid rgba(0,255,65,0.3);padding-bottom:10px;width:100%;max-width:640px;text-align:center;}
+.targets{display:flex;gap:14px;}
+.tcard{width:180px;border:1px solid rgba(0,255,65,0.3);padding:16px;cursor:pointer;transition:all 0.18s;}
+.tcard:hover{border-color:#00ff41;background:rgba(0,255,65,0.05);transform:translateY(-4px);}
+.tico{font-size:26px;margin-bottom:10px;}
+.tname{font-family:'Orbitron',monospace;font-size:11px;color:#00ff41;margin-bottom:6px;}
+.tdiff{font-size:10px;letter-spacing:2px;margin-bottom:10px;}
+.dLOW{color:#00ff41;}.dMED{color:#ffaa00;}.dEXT{color:#ff0000;}
+.tinfo{font-size:10px;color:#007a1f;line-height:1.8;}
+.tinfo span{color:#00ff41;}
+.sdots{display:flex;gap:3px;margin-top:6px;}
+.sd{width:7px;height:7px;background:rgba(0,255,65,0.15);border:1px solid rgba(0,255,65,0.3);}
+.sd.on{background:#00ff41;}
+
+/* hacking */
+#hacking{background:#000;}
+#hacking .content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:28px;}
+.hack-track-wrap{width:520px;}
+.hack-track{width:100%;height:58px;background:rgba(0,255,65,0.05);border:1px solid rgba(0,255,65,0.3);position:relative;overflow:hidden;}
+.hack-zone{position:absolute;top:0;left:50%;transform:translateX(-50%);width:76px;height:100%;background:rgba(0,255,65,0.12);border-left:2px solid #00ff41;border-right:2px solid #00ff41;}
+.hack-cur{position:absolute;top:7px;left:0;width:44px;height:44px;background:#ff3333;border:2px solid #ff6666;}
+.hack-cur.sf{background:#00ff41!important;}
+.hack-cur.ff{background:#ff8800!important;}
+.rmsg{font-family:'Orbitron',monospace;font-size:20px;min-height:30px;text-align:center;}
+.rmsg.ok{color:#00ff41;}.rmsg.fail{color:#ff3333;}
+
+/* shop — fits in 860px max */
+#shop{background:#000a03;}
+#shop .content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;}
+.shop-tabs{display:flex;width:100%;max-width:620px;}
+.stab{flex:1;background:transparent;border:1px solid rgba(0,255,65,0.25);color:#007a1f;font-family:'Share Tech Mono',monospace;font-size:11px;padding:8px 4px;cursor:pointer;letter-spacing:1px;transition:all 0.12s;border-right:none;text-align:center;}
+.stab:last-child{border-right:1px solid rgba(0,255,65,0.25);}
+.stab.on{background:rgba(0,255,65,0.1);border-color:#00ff41;color:#00ff41;}
+.spanel{display:none;width:100%;max-width:620px;gap:10px;}
+.spanel.on{display:flex;}
+.sitem{flex:1;border:1px solid rgba(0,255,65,0.25);padding:14px;transition:border-color 0.15s;min-width:0;}
+.sitem:hover{border-color:rgba(0,255,65,0.5);}
+.sitem.owned{border-color:rgba(255,170,0,0.4);}
+.itop{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.iico{font-size:20px;}
+.iname{font-family:'Orbitron',monospace;font-size:10px;color:#00ff41;}
+.itier{font-size:9px;color:#ffaa00;letter-spacing:1px;}
+.idesc{font-size:10px;color:#007a1f;line-height:1.6;margin-bottom:7px;min-height:36px;}
+.ieff{font-size:10px;color:#00aaff;margin-bottom:8px;}
+.iprice{font-size:14px;color:#00ff41;margin-bottom:7px;font-family:'Orbitron',monospace;}
+.bbuy{background:transparent;border:1px solid #00ff41;color:#00ff41;font-family:'Share Tech Mono',monospace;font-size:10px;padding:5px 8px;cursor:pointer;letter-spacing:1px;width:100%;transition:all 0.12s;}
+.bbuy:hover:not(:disabled){background:rgba(0,255,65,0.08);}
+.bbuy:disabled{border-color:#333;color:#333;cursor:not-allowed;}
+.bbuy.owned{border-color:#ffaa00;color:#ffaa00;}
+.updots{display:flex;gap:3px;margin-bottom:6px;}
+.ud{width:12px;height:5px;background:rgba(0,255,65,0.12);border:1px solid rgba(0,255,65,0.25);}
+.ud.fy{background:#ffaa00;}
+
+/* rat */
+#rat-event{background:#000;}
+#rat-event .content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:18px;}
+.rat-title{font-family:'Orbitron',monospace;font-size:26px;font-weight:700;color:#ff3300;letter-spacing:5px;animation:pulse 0.8s infinite;}
+.rat-grid{display:grid;grid-template-columns:repeat(8,50px);grid-template-rows:repeat(5,42px);gap:4px;}
+.rat-cell{width:50px;height:42px;background:rgba(255,50,0,0.08);border:1px solid rgba(255,50,0,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;transition:all 0.1s;font-family:'Share Tech Mono',monospace;color:#ff3300;}
+.rat-cell:hover{background:rgba(255,50,0,0.2);border-color:#ff3300;}
+.rat-cell.hit{background:rgba(0,255,65,0.2);border-color:#00ff41;color:#00ff41;}
+.rat-cell.miss{background:rgba(255,0,0,0.3);border-color:#ff0000;animation:shake 0.3s;}
+.rat-progress{width:380px;height:8px;background:rgba(255,50,0,0.15);border:1px solid rgba(255,50,0,0.4);}
+.rat-fill{height:100%;background:#ff3300;transition:width 0.3s;}
+
+/* pipe */
+#pipe-event{background:#000;}
+#pipe-event .content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;}
+.pipe-title{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;color:#00aaff;letter-spacing:5px;}
+.pipe-grid{display:grid;gap:2px;}
+.pcell{width:54px;height:54px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:rgba(0,100,200,0.08);border:1px solid rgba(0,100,200,0.3);position:relative;transition:all 0.1s;}
+.pcell:hover{background:rgba(0,150,255,0.15);border-color:#00aaff;}
+.pcell.src{background:rgba(0,200,100,0.2);border-color:#00ff41;cursor:default;}
+.pcell.dst{background:rgba(255,150,0,0.15);border-color:#ffaa00;cursor:default;}
+.pcell svg{width:44px;height:44px;position:absolute;}
+#pipe-check-btn{background:transparent;border:1px solid #00aaff;color:#00aaff;font-family:'Share Tech Mono',monospace;font-size:12px;padding:8px 20px;cursor:pointer;letter-spacing:3px;transition:all 0.15s;}
+#pipe-check-btn:hover{background:rgba(0,170,255,0.1);}
+
+/* event overlay */
+#ev-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.92);border:1px solid rgba(0,255,65,0.5);padding:12px 32px;text-align:center;z-index:5000;pointer-events:none;opacity:0;transition:opacity 0.25s;}
+#ev-overlay.show{opacity:1;}
+.evlbl{font-size:10px;color:#007a1f;letter-spacing:3px;margin-bottom:3px;}
+.evtxt{font-size:13px;color:#00ff41;letter-spacing:2px;}
+
+/* gameover */
+#gameover{background:#000;}
+#gameover .content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:22px;}
+.go-ttl{font-family:'Orbitron',monospace;font-size:48px;font-weight:700;color:#ff0000;letter-spacing:6px;animation:flicker 0.4s infinite;}
+.go-sub{font-size:12px;color:#aa0000;letter-spacing:4px;}
+.go-stats{font-size:12px;color:#ff3333;line-height:2.2;text-align:center;}
+</style>
+
+<div id="game">
+<div id="ev-overlay"><div class="evlbl">// SYSTEM EVENT</div><div class="evtxt" id="ev-text"></div></div>
+
+<!-- LOGIN -->
+<div id="login" class="screen active">
+  <div class="grid-bg"></div>
+  <div class="content">
+    <div class="title-orb glow" style="font-size:40px;">HACKERS PATH</div>
+    <div style="font-size:11px;color:#00aa2a;letter-spacing:4px;margin-top:-12px;">// SECURE TERMINAL LOGIN //</div>
+    <div class="login-box">
+      <div><div class="flbl" id="ll-user">USERNAME</div>
+        <input class="finput" id="uname" type="text" maxlength="16" placeholder="enter handle..." autocomplete="off" spellcheck="false">
+      </div>
+      <div><div class="flbl">LANGUAGE</div>
+        <div class="lang-row">
+          <button class="lbtn on" onclick="setLang('en')" id="btn-en">EN</button>
+          <button class="lbtn" onclick="setLang('ru')" id="btn-ru">RU</button>
+          <button class="lbtn" onclick="setLang('uk')" id="btn-uk">UK</button>
+        </div>
+      </div>
+      <div class="lerr" id="lerr"></div>
+      <button class="btn" id="btn-connect" onclick="doLogin()" style="text-align:center;letter-spacing:4px;">[ CONNECT ]</button>
+    </div>
+    <div style="font-size:9px;color:#002a08;letter-spacing:3px;">v1.5 — UNDERGROUND BUILD</div>
+  </div>
+</div>
+
+<!-- HUB -->
+<div id="hub" class="screen">
+  <div class="grid-bg"></div>
+  <div class="content">
+    <div class="title-orb glow" style="font-size:34px;">HACKERS PATH</div>
+    <div style="font-size:11px;color:#00aa2a;letter-spacing:3px;" id="hub-sub">// UNDERGROUND NETWORK ACCESS //</div>
+    <div style="font-size:12px;color:#007a1f;letter-spacing:3px;" id="hub-welcome">OPERATOR: <span style="color:#00ff41" id="hub-uname">ANON</span></div>
+    <div id="alert-wrap" style="display:none;"><div class="alert-banner" id="alert-txt">RAT DETECTED</div></div>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-lbl" id="lb-bal">BALANCE</div><div class="stat-val" id="hub-money">$0</div></div>
+      <div class="stat"><div class="stat-lbl" id="lb-risk">RISK</div><div class="stat-val" id="hub-risk-v">0%</div></div>
+      <div class="stat"><div class="stat-lbl" id="lb-hacks">HACKS</div><div class="stat-val" id="hub-hacks">0</div></div>
+    </div>
+    <div class="risk-wrap">
+      <div class="risk-lbl"><span id="lb-trace">TRACE RISK</span><span id="hub-risk-p">0%</span></div>
+      <div class="risk-bar"><div class="risk-fill" id="risk-fill" style="width:0%"></div></div>
+    </div>
+    <div id="hub-badges" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;max-width:420px;min-height:20px;"></div>
+    <div class="hub-btns">
+      <button class="btn" id="hbtn-term" onclick="goTo('target-select')">[ TERMINAL ]</button>
+      <button class="btn" id="hbtn-shop" onclick="goTo('shop')">[ SHOP ]</button>
+    </div>
+  </div>
+</div>
+
+<!-- TARGET SELECT -->
+<div id="target-select" class="screen">
+  <div class="content">
+    <div class="screen-title" id="ts-title">// SELECT TARGET //</div>
+    <div class="targets">
+      <div class="tcard" onclick="startHack('coffee')">
+        <div class="tico">☕</div><div class="tname" id="tn-coffee">COFFEE SHOP</div>
+        <div class="tdiff dLOW" id="td-coffee">[ LOW ]</div>
+        <div class="tinfo" id="ti-coffee"></div>
+        <div class="sdots"><div class="sd on"></div><div class="sd on"></div><div class="sd"></div><div class="sd"></div><div class="sd"></div></div>
+      </div>
+      <div class="tcard" onclick="startHack('school')">
+        <div class="tico">🏫</div><div class="tname" id="tn-school">SCHOOL</div>
+        <div class="tdiff dMED" id="td-school">[ MEDIUM ]</div>
+        <div class="tinfo" id="ti-school"></div>
+        <div class="sdots"><div class="sd on"></div><div class="sd on"></div><div class="sd on"></div><div class="sd on"></div><div class="sd"></div></div>
+      </div>
+      <div class="tcard" onclick="startHack('sbu')">
+        <div class="tico">🔒</div><div class="tname" id="tn-sbu">S.B.U.</div>
+        <div class="tdiff dEXT" id="td-sbu">[ EXTREME ]</div>
+        <div class="tinfo" id="ti-sbu"></div>
+        <div class="sdots"><div class="sd on"></div><div class="sd on"></div><div class="sd on"></div><div class="sd on"></div><div class="sd on"></div></div>
+      </div>
+    </div>
+    <button class="btn-sm" id="ts-back" onclick="goTo('hub')">[ BACK ]</button>
+  </div>
+</div>
+
+<!-- HACKING QTE -->
+<div id="hacking" class="screen">
+  <div class="content">
+    <div style="font-family:'Orbitron',monospace;font-size:16px;letter-spacing:4px;color:#00ff41;" id="hack-tname"></div>
+    <div class="hack-track-wrap">
+      <div class="hack-track" id="hack-track">
+        <div class="hack-zone"></div>
+        <div class="hack-cur" id="hack-cur" style="left:0px;"></div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#007a1f;letter-spacing:3px;" id="hack-instr">PRESS <span style="color:#00ff41;">[SPACE]</span></div>
+    <div class="rmsg" id="hack-res"></div>
+    <div style="font-size:11px;color:#007a1f;letter-spacing:2px;" id="hack-sub2"></div>
+    <button class="btn-sm" id="hack-abort" onclick="abortHack()" style="margin-top:6px;">[ ABORT ]</button>
+  </div>
+</div>
+
+<!-- SHOP -->
+<div id="shop" class="screen">
+  <div class="content">
+    <div class="screen-title" id="sh-title">// DARKNET MARKET //</div>
+    <div style="font-size:12px;color:#00ff41;letter-spacing:2px;"><span id="sh-ballbl">BALANCE</span>: <span id="sh-money">$0</span></div>
+    <div class="shop-tabs" id="shop-tabs"></div>
+    <div id="shop-panels"></div>
+    <button class="btn-sm" id="sh-back" onclick="goTo('hub')" style="position:static;">[ BACK ]</button>
+  </div>
+</div>
+
+<!-- RAT EVENT -->
+<div id="rat-event" class="screen">
+  <div class="content">
+    <div class="rat-title" id="rat-title">RAT DETECTED</div>
+    <div style="font-size:11px;color:#ff5500;letter-spacing:2px;" id="rat-sub">CLICK ALL PROC — AVOID SYS</div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div style="font-family:'Orbitron',monospace;font-size:30px;color:#ff3300;" id="rat-timer">15</div>
+      <div><div class="rat-progress"><div class="rat-fill" id="rat-prog" style="width:0%"></div></div>
+        <div style="font-size:11px;color:#ff5500;letter-spacing:2px;margin-top:4px;" id="rat-score">0 / 0 KILLED</div>
+      </div>
+    </div>
+    <div class="rat-grid" id="rat-grid"></div>
+    <div style="font-size:11px;color:#ff5500;letter-spacing:2px;" id="rat-hint"></div>
+  </div>
+</div>
+
+<!-- PIPE PUZZLE -->
+<div id="pipe-event" class="screen">
+  <div class="content">
+    <div class="pipe-title" id="pipe-title">ROUTE SIGNAL</div>
+    <div style="font-size:11px;color:#0077cc;letter-spacing:2px;" id="pipe-sub">CONNECT A TO B — CLICK TO ROTATE</div>
+    <div style="display:flex;align-items:center;gap:20px;">
+      <div style="font-family:'Orbitron',monospace;font-size:26px;color:#00aaff;" id="pipe-timer">35</div>
+      <div style="font-size:11px;color:#0077cc;letter-spacing:2px;" id="pipe-hint">CLICK CELLS TO ROTATE</div>
+    </div>
+    <div class="pipe-grid" id="pipe-grid"></div>
+    <button id="pipe-check-btn" onclick="checkPipe()">[ CHECK CONNECTION ]</button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div id="gameover" class="screen">
+  <div class="content">
+    <div class="go-ttl" id="go-ttl">TRACED</div>
+    <div class="go-sub" id="go-sub">// CONNECTION TERMINATED //</div>
+    <div class="go-stats" id="go-stats"></div>
+    <button class="btn" id="go-restart" onclick="resetGame()" style="margin-top:14px;">[ RESTART ]</button>
+  </div>
+</div>
+</div>
+
+<script>
+const TR={
+  en:{connect:'[ CONNECT ]',uname:'USERNAME',ph:'enter handle...',e_empty:'ERROR: CANNOT BE EMPTY',e_short:'ERROR: MIN 2 CHARS',hub_sub:'// UNDERGROUND NETWORK ACCESS //',op:'OPERATOR',bal:'BALANCE',risk:'RISK',hacks:'HACKS',trace:'TRACE RISK',term:'[ TERMINAL ]',shop:'[ SHOP ]',back:'[ BACK ]',abort:'[ ABORT ]',ts_title:'// SELECT TARGET //',nc:'COFFEE SHOP',ns:'SCHOOL',nb:'S.B.U.',dc:'[ LOW RISK ]',ds:'[ MEDIUM RISK ]',db:'[ EXTREME RISK ]',reward:'Reward',miss:'Miss penalty',hack_instr:'PRESS <span style="color:#00ff41">[SPACE]</span> IN GREEN ZONE',ok:'SUCCESS — ACCESS GRANTED',fail:'ACCESS DENIED',sh_title:'// DARKNET MARKET //',sh_bal:'BALANCE',t_sys:'SYSTEM',t_upg:'UPGRADES',t_def:'DEFENSE',buy:'[ PURCHASE ]',inst:'[ INSTALLED ]',maxed:'[ MAXED ]',go_ttl:'TRACED',go_sub:'// CONNECTION TERMINATED //',earned:'EARNED',hacked:'HACKS',risk_lbl:'RISK',restart:'[ RESTART ]',alert_rat:'⚠ RAT DETECTED — NEUTRALIZE IT',rat_ttl:'RAT DETECTED',rat_sub:'CLICK [PROC] — AVOID [SYS]',rat_hint:'+10% RISK PER MISS',rat_done:'THREAT NEUTRALIZED +$300',rat_fail:'RAT ESCAPED +25% RISK',pipe_ttl:'ROUTE SIGNAL',pipe_sub:'CONNECT [A] TO [B] — CLICK TO ROTATE',pipe_hint:'CLICK = ROTATE • CHECK WHEN READY',pipe_ok:'SIGNAL ROUTED -15% RISK +$500',pipe_fail:'WRONG ROUTE +20% RISK',ev_isp:'ISP TRACED',ev_tax:'SERVICE TAX',ev_enc:'ENCRYPTION BOOST',prx:'PROXY: ',srv:'SERVER T3',gst:'GHOST x',eff_srv:'Hub visual upgrade',eff_prx:'Miss penalty /2 for 120s',eff_burn:'Purge logs -30% risk',eff_ghost:'5x miss immunity',upg_c:'Coffee chip',upg_s:'School module',upg_b:'SBU core',upg_cd:'Custom exploit for coffee shops.',upg_sd:'Advanced payload for schools.',upg_bd:'Classified core for SBU.',per_hack:' per hack',lv:'LV'},
+  ru:{connect:'[ ПОДКЛЮЧИТЬСЯ ]',uname:'НИКНЕЙМ',ph:'введи никнейм...',e_empty:'ОШИБКА: ПОЛЕ ПУСТОЕ',e_short:'ОШИБКА: МИН 2 СИМВОЛА',hub_sub:'// ДОСТУП К ПОДПОЛЬНОЙ СЕТИ //',op:'ОПЕРАТОР',bal:'БАЛАНС',risk:'РИСК',hacks:'ВЗЛОМЫ',trace:'УРОВЕНЬ СЛЕЖКИ',term:'[ ТЕРМИНАЛ ]',shop:'[ МАГАЗИН ]',back:'[ НАЗАД ]',abort:'[ ПРЕРВАТЬ ]',ts_title:'// ВЫБОР ЦЕЛИ //',nc:'КОФЕЙНЯ',ns:'ШКОЛА',nb:'СБУ',dc:'[ НИЗКИЙ ]',ds:'[ СРЕДНИЙ ]',db:'[ ЭКСТРЕМАЛЬНЫЙ ]',reward:'Награда',miss:'Штраф',hack_instr:'НАЖМИ <span style="color:#00ff41">[ПРОБЕЛ]</span> В ЗЕЛЁНОЙ ЗОНЕ',ok:'УСПЕХ — ДОСТУП ПОЛУЧЕН',fail:'ОТКАЗ — ОБНАРУЖЕН',sh_title:'// ДАРКНЕТ МАГАЗИН //',sh_bal:'БАЛАНС',t_sys:'СИСТЕМА',t_upg:'АПГРЕЙДЫ',t_def:'ЗАЩИТА',buy:'[ КУПИТЬ ]',inst:'[ УСТАНОВЛЕНО ]',maxed:'[ МАКС ]',go_ttl:'ВЫЧИСЛЕН',go_sub:'// СОЕДИНЕНИЕ ПРЕРВАНО //',earned:'ЗАРАБОТАНО',hacked:'ВЗЛОМОВ',risk_lbl:'РИСК',restart:'[ РЕСТАРТ ]',alert_rat:'⚠ ОБНАРУЖЕН РАТ — НЕЙТРАЛИЗУЙ',rat_ttl:'РАТ В СИСТЕМЕ',rat_sub:'ЖМИ [PROC] — НЕ ТРОГАЙ [SYS]',rat_hint:'+10% РИСКА ЗА ПРОМАХ',rat_done:'УГРОЗА НЕЙТРАЛИЗОВАНА +$300',rat_fail:'РАТ УШЁЛ +25% РИСКА',pipe_ttl:'МАРШРУТ СИГНАЛА',pipe_sub:'СОЕДИНИ [A] С [B] — КРУТИ ТРУБЫ',pipe_hint:'КЛИК = ПОВОРОТ • ПРОВЕРЬ КОГДА ГОТОВО',pipe_ok:'СИГНАЛ ПРОЛОЖЕН -15% +$500',pipe_fail:'НЕВЕРНЫЙ МАРШРУТ +20% РИСКА',ev_isp:'ПРОВАЙДЕР ЗАСЁК',ev_tax:'НАЛОГ',ev_enc:'ОЧИСТКА ЛОГОВ',prx:'ПРОКСИ: ',srv:'СЕРВЕР T3',gst:'ПРИЗРАК x',eff_srv:'Визуал хаба',eff_prx:'Штраф /2 на 120с',eff_burn:'Очистка логов -30%',eff_ghost:'5х иммунитет',upg_c:'Чип кофейни',upg_s:'Модуль школы',upg_b:'Ядро СБУ',upg_cd:'Эксплойт под кофейни.',upg_sd:'Пейлоад для школ.',upg_bd:'Ядро СБУ.',per_hack:' за взлом',lv:'УР'},
+  uk:{connect:'[ ПІДКЛЮЧИТИСЬ ]',uname:'НІКНЕЙМ',ph:'введи нікнейм...',e_empty:'ПОМИЛКА: ПОЛЕ ПОРОЖНЄ',e_short:'ПОМИЛКА: МІН 2 СИМВОЛИ',hub_sub:'// ДОСТУП ДО ПІДПІЛЬНОЇ МЕРЕЖІ //',op:'ОПЕРАТОР',bal:'БАЛАНС',risk:'РИЗИК',hacks:'ЗЛОМИ',trace:'РІВЕНЬ СТЕЖЕННЯ',term:'[ ТЕРМІНАЛ ]',shop:'[ МАГАЗИН ]',back:'[ НАЗАД ]',abort:'[ ПЕРЕРВАТИ ]',ts_title:'// ВИБІР ЦІЛІ //',nc:'КАВ\'ЯРНЯ',ns:'ШКОЛА',nb:'СБУ',dc:'[ НИЗЬКИЙ ]',ds:'[ СЕРЕДНІЙ ]',db:'[ ЕКСТРЕМАЛЬНИЙ ]',reward:'Нагорода',miss:'Штраф',hack_instr:'НАТИСНИ <span style="color:#00ff41">[ПРОБІЛ]</span> У ЗЕЛЕНІЙ ЗОНІ',ok:'УСПІХ — ДОСТУП ОТРИМАНО',fail:'ВІДМОВА — ВИЯВЛЕНО',sh_title:'// ДАРКНЕТ МАРКЕТ //',sh_bal:'БАЛАНС',t_sys:'СИСТЕМА',t_upg:'АПГРЕЙДИ',t_def:'ЗАХИСТ',buy:'[ ПРИДБАТИ ]',inst:'[ ВСТАНОВЛЕНО ]',maxed:'[ МАКС ]',go_ttl:'ВИРАХУВАЛИ',go_sub:'// З\'ЄДНАННЯ ПЕРЕРВАНО //',earned:'ЗАРОБЛЕНО',hacked:'ЗЛОМІВ',risk_lbl:'РИЗИК',restart:'[ РЕСТАРТ ]',alert_rat:'⚠ ВИЯВЛЕНО РАТ — НЕЙТРАЛІЗУЙ',rat_ttl:'РАТ У СИСТЕМІ',rat_sub:'ЖМИ [PROC] — НЕ ЧІПАЙ [SYS]',rat_hint:'+10% РИЗИКУ ЗА ПРОМАХ',rat_done:'ЗАГРОЗУ НЕЙТРАЛІЗОВАНО +$300',rat_fail:'РАТ ПІШОВ +25% РИЗИКУ',pipe_ttl:'МАРШРУТ СИГНАЛУ',pipe_sub:'З\'ЄДНАЙ [A] З [B] — КРУТИ ТРУБИ',pipe_hint:'КЛІК = ПОВОРОТ • ПЕРЕВІР КОЛИ ГОТОВО',pipe_ok:'СИГНАЛ ПРОКЛАДЕНО -15% +$500',pipe_fail:'НЕПРАВИЛЬНИЙ МАРШРУТ +20% РИЗИКУ',ev_isp:'ПРОВАЙДЕР ПОМІТИВ',ev_tax:'ПОДАТОК',ev_enc:'ОЧИЩЕННЯ ЛОГІВ',prx:'ПРОКСІ: ',srv:'СЕРВЕР T3',gst:'ПРИВИД x',eff_srv:'Візуал хабу',eff_prx:'Штраф /2 на 120с',eff_burn:'Очистка логів -30%',eff_ghost:'5х імунітет',upg_c:'Чіп кав\'ярні',upg_s:'Модуль школи',upg_b:'Ядро СБУ',upg_cd:'Експлойт під кав\'ярні.',upg_sd:'Пейлоад для шкіл.',upg_bd:'Ядро СБУ.',per_hack:' за злом',lv:'РВ'}
+};
+
+const UPGRADES={coffee:{maxLvl:2,cost:[300,500],bonus:25},school:{maxLvl:2,cost:[800,1400],bonus:100},sbu:{maxLvl:2,cost:[2000,3500],bonus:250}};
+const BASE_REWARD={coffee:50,school:400,sbu:2500};
+const BASE_SPEED={coffee:4,school:8,sbu:18};
+const BASE_PEN={coffee:5,school:10,sbu:90};
+
+let lang='en';
+let gs={money:0,risk:0,hacks:0,username:'ANON',hasServer:false,proxyEnd:0,ghostCharges:0,upgrades:{coffee:0,school:0,sbu:0},currentTarget:null};
+let hackAnim=null,hackX=0,hackDir=1,hackLocked=false,hackRdy=true;
+let evTimer=null,shopTab=0,ratTimer=null,pipeState=null;
+
+const t=k=>TR[lang][k]||TR.en[k]||k;
+
+function setLang(l){
+  lang=l;
+  ['en','ru','uk'].forEach(x=>document.getElementById('btn-'+x).classList.remove('on'));
+  document.getElementById('btn-'+l).classList.add('on');
+  document.getElementById('uname').placeholder=t('ph');
+  document.getElementById('ll-user').textContent=t('uname');
+  document.getElementById('btn-connect').textContent=t('connect');
+  document.getElementById('lerr').textContent='';
+}
+function doLogin(){
+  const v=document.getElementById('uname').value.trim();
+  const e=document.getElementById('lerr');
+  if(!v){e.textContent=t('e_empty');return;}
+  if(v.length<2){e.textContent=t('e_short');return;}
+  gs.username=v.toUpperCase();
+  applyLang();goTo('hub');
+}
+function applyLang(){
+  document.getElementById('hub-sub').textContent=t('hub_sub');
+  document.getElementById('hub-welcome').innerHTML=t('op')+': <span style="color:#00ff41" id="hub-uname">'+gs.username+'</span>';
+  document.getElementById('lb-bal').textContent=t('bal');
+  document.getElementById('lb-risk').textContent=t('risk');
+  document.getElementById('lb-hacks').textContent=t('hacks');
+  document.getElementById('lb-trace').textContent=t('trace');
+  document.getElementById('hbtn-term').textContent=t('term');
+  document.getElementById('hbtn-shop').textContent=t('shop');
+  document.getElementById('ts-title').textContent=t('ts_title');
+  document.getElementById('tn-coffee').textContent=t('nc');
+  document.getElementById('td-coffee').textContent=t('dc');
+  document.getElementById('tn-school').textContent=t('ns');
+  document.getElementById('td-school').textContent=t('ds');
+  document.getElementById('tn-sbu').textContent=t('nb');
+  document.getElementById('td-sbu').textContent=t('db');
+  document.getElementById('ts-back').textContent=t('back');
+  document.getElementById('hack-abort').textContent=t('abort');
+  document.getElementById('hack-instr').innerHTML=t('hack_instr');
+  document.getElementById('sh-title').textContent=t('sh_title');
+  document.getElementById('sh-ballbl').textContent=t('sh_bal');
+  document.getElementById('sh-back').textContent=t('back');
+  document.getElementById('go-restart').textContent=t('restart');
+  updateTargetInfo();buildShop();
+}
+function updateTargetInfo(){
+  ['coffee','school','sbu'].forEach(k=>{
+    const r=BASE_REWARD[k]+gs.upgrades[k]*UPGRADES[k].bonus;
+    document.getElementById('ti-'+k).innerHTML=t('reward')+': <span>$'+r+'</span><br>'+t('miss')+': <span>+'+BASE_PEN[k]+'%</span>';
+  });
+}
+function goTo(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.getElementById(s).classList.add('active');
+  if(s==='hub'){updateUI();scheduleEvent();}
+  else clearTimeout(evTimer);
+  if(s==='shop'){document.getElementById('sh-money').textContent='$'+gs.money;buildShop();}
+}
+function abortHack(){
+  if(hackAnim){cancelAnimationFrame(hackAnim);hackAnim=null;}
+  hackX=0;hackDir=1;hackLocked=false;hackRdy=true;
+  goTo('hub');
+}
+function updateUI(){
+  document.getElementById('hub-money').textContent='$'+gs.money;
+  document.getElementById('hub-risk-v').textContent=Math.round(gs.risk)+'%';
+  document.getElementById('hub-risk-p').textContent=Math.round(gs.risk)+'%';
+  document.getElementById('hub-hacks').textContent=gs.hacks;
+  const f=document.getElementById('risk-fill');
+  f.style.width=gs.risk+'%';
+  f.className='risk-fill'+(gs.risk>=80?' dang':gs.risk>=50?' warn':'');
+  const b=document.getElementById('hub-badges');
+  b.innerHTML='';
+  if(gs.hasServer)b.innerHTML+='<div class="badge bg-green">'+t('srv')+'</div>';
+  const now=Date.now();
+  if(gs.proxyEnd>now)b.innerHTML+='<div class="badge bg-blue">'+t('prx')+Math.ceil((gs.proxyEnd-now)/1000)+'s</div>';
+  if(gs.ghostCharges>0)b.innerHTML+='<div class="badge bg-yellow">'+t('gst')+gs.ghostCharges+'</div>';
+  ['coffee','school','sbu'].forEach(k=>{if(gs.upgrades[k]>0)b.innerHTML+='<div class="badge bg-yellow">LV'+gs.upgrades[k]+' '+{coffee:'☕',school:'🏫',sbu:'🔒'}[k]+'</div>';});
+  updateTargetInfo();
+}
+function addRisk(v){
+  gs.risk=Math.max(0,Math.min(100,gs.risk+v));
+  updateUI();
+  if(gs.risk>=100)gameOver();
+}
+
+/* ── HACK QTE ── */
+function startHack(k){
+  gs.currentTarget=k;
+  goTo('hacking');
+  document.getElementById('hack-tname').textContent='TARGET: '+t('n'+k[0]);
+  document.getElementById('hack-res').textContent='';
+  document.getElementById('hack-sub2').textContent='';
+  hackX=0;hackDir=1;hackLocked=false;hackRdy=true;
+  if(hackAnim)cancelAnimationFrame(hackAnim);
+
+  const cur=document.getElementById('hack-cur');
+  cur.style.left='0px';
+
+  // measure track width after render
+  requestAnimationFrame(()=>{
+    const track=document.getElementById('hack-track');
+    const W=track.offsetWidth-44;
+    const spd=BASE_SPEED[k];
+    let last=null;
+    function frame(ts){
+      if(!last)last=ts;
+      const dt=Math.min((ts-last)/1000,0.05);
+      last=ts;
+      if(!hackLocked){
+        hackX+=hackDir*spd*60*dt;
+        if(hackX>=W){hackX=W;hackDir=-1;}
+        if(hackX<=0){hackX=0;hackDir=1;}
+        cur.style.left=Math.round(hackX)+'px';
+      }
+      hackAnim=requestAnimationFrame(frame);
+    }
+    hackAnim=requestAnimationFrame(frame);
+  });
+}
+
+function doHack(){
+  if(hackLocked||!hackRdy)return;
+  hackRdy=false;
+  const track=document.getElementById('hack-track');
+  const W=track.offsetWidth;
+  const cx=hackX+22;
+  const ok=cx>=W/2-38&&cx<=W/2+38;
+  const cur=document.getElementById('hack-cur');
+  const res=document.getElementById('hack-res');
+  const sub=document.getElementById('hack-sub2');
+  const k=gs.currentTarget;
+  if(ok){
+    const r=BASE_REWARD[k]+gs.upgrades[k]*UPGRADES[k].bonus;
+    gs.money+=r;gs.hacks++;addRisk(-2);
+    res.className='rmsg ok';res.textContent=t('ok');
+    sub.textContent='+$'+r+' | -2%';
+    cur.classList.add('sf');setTimeout(()=>cur.classList.remove('sf'),300);
+  } else {
+    let p=BASE_PEN[k],note='';
+    if(gs.ghostCharges>0){gs.ghostCharges--;p=0;note=' [GHOST]';}
+    else if(gs.proxyEnd>Date.now()){p=Math.ceil(p/2);note=' [PROXY]';}
+    addRisk(p);
+    res.className='rmsg fail';res.textContent=t('fail');
+    sub.textContent=(p?'+'+p+'%':'NO RISK')+note;
+    cur.classList.add('ff');hackLocked=true;
+    setTimeout(()=>{cur.classList.remove('ff');hackLocked=false;},1500);
+  }
+  if(gs.risk<100)setTimeout(()=>{res.textContent='';sub.textContent='';hackRdy=true;},1600);
+}
+
+/* ── SHOP ── */
+function buildShop(){
+  const tabs=document.getElementById('shop-tabs');
+  const panels=document.getElementById('shop-panels');
+  const tnames=[t('t_sys'),t('t_upg'),t('t_def')];
+  tabs.innerHTML=tnames.map((n,i)=>`<button class="stab${shopTab===i?' on':''}" onclick="switchShopTab(${i})">${n}</button>`).join('');
+  const p0=`<div class="spanel${shopTab===0?' on':''}" id="sp0">
+    <div class="sitem${gs.hasServer?' owned':''}">
+      <div class="itop"><div class="iico">🖥</div><div><div class="iname">SERVER T3</div><div class="itier">${gs.hasServer?'OWNED':'TIER 3'}</div></div></div>
+      <div class="idesc">${t('eff_srv')}.</div><div class="ieff">+HUB VISUAL</div>
+      <div class="iprice">$800</div>
+      <button class="bbuy${gs.hasServer?' owned':''}" ${gs.hasServer?'disabled':''} onclick="buyI('server')">${gs.hasServer?t('inst'):t('buy')}</button>
+    </div>
+  </div>`;
+  const p1cards=['coffee','school','sbu'].map(k=>{
+    const u=UPGRADES[k];const lv=gs.upgrades[k];const mx=lv>=u.maxLvl;
+    const cost=mx?0:u.cost[lv];const bonus=lv*u.bonus;
+    const ico={coffee:'☕',school:'🏫',sbu:'🔒'}[k];
+    const nm={coffee:t('upg_c'),school:t('upg_s'),sbu:t('upg_b')}[k];
+    const desc={coffee:t('upg_cd'),school:t('upg_sd'),sbu:t('upg_bd')}[k];
+    const dots=Array.from({length:u.maxLvl},(_,i)=>`<div class="ud${i<lv?' fy':''}"></div>`).join('');
+    return `<div class="sitem${mx?' owned':''}">
+      <div class="itop"><div class="iico">${ico}</div><div><div class="iname">${nm}</div><div class="itier">${t('lv')} ${lv}/${u.maxLvl}</div></div></div>
+      <div class="updots">${dots}</div>
+      <div class="idesc">${desc}</div>
+      <div class="ieff">+$${bonus}${t('per_hack')}${!mx?' → +$'+(lv+1)*u.bonus:''}</div>
+      <div class="iprice">${mx?'---':'$'+cost}</div>
+      <button class="bbuy${mx?' owned':''}" ${mx||gs.money<cost?'disabled':''} onclick="buyUpg('${k}')">${mx?t('maxed'):t('buy')}</button>
+    </div>`;
+  }).join('');
+  const p1=`<div class="spanel${shopTab===1?' on':''}">${p1cards}</div>`;
+  const pLeft=gs.proxyEnd>Date.now()?Math.ceil((gs.proxyEnd-Date.now())/1000):0;
+  const p2=`<div class="spanel${shopTab===2?' on':''}">
+    <div class="sitem${pLeft>0?' owned':''}">
+      <div class="itop"><div class="iico">🛡</div><div><div class="iname">PROXY SHIELD</div><div class="itier">${pLeft>0?pLeft+'s LEFT':'OFF'}</div></div></div>
+      <div class="idesc">${t('eff_prx')}.</div><div class="ieff">MISS /2</div>
+      <div class="iprice">$1200</div>
+      <button class="bbuy" ${gs.money<1200?'disabled':''} onclick="buyI('proxy')">${t('buy')}</button>
+    </div>
+    <div class="sitem">
+      <div class="itop"><div class="iico">🔥</div><div><div class="iname">LOG BURNER</div><div class="itier">ONE-USE</div></div></div>
+      <div class="idesc">${t('eff_burn')}.</div><div class="ieff">RISK -30%</div>
+      <div class="iprice">$600</div>
+      <button class="bbuy" ${gs.money<600?'disabled':''} onclick="buyI('burn')">${t('buy')}</button>
+    </div>
+    <div class="sitem${gs.ghostCharges>0?' owned':''}">
+      <div class="itop"><div class="iico">👻</div><div><div class="iname">GHOST</div><div class="itier">${gs.ghostCharges>0?'x'+gs.ghostCharges:' OFF'}</div></div></div>
+      <div class="idesc">${t('eff_ghost')}.</div><div class="ieff">5x NO RISK</div>
+      <div class="iprice">$2000</div>
+      <button class="bbuy${gs.ghostCharges>0?' owned':''}" ${gs.ghostCharges>0||gs.money<2000?'disabled':''} onclick="buyI('ghost')">${gs.ghostCharges>0?t('inst'):t('buy')}</button>
+    </div>
+  </div>`;
+  panels.innerHTML=p0+p1+p2;
+}
+function switchShopTab(i){shopTab=i;document.getElementById('sh-money').textContent='$'+gs.money;buildShop();}
+function buyI(item){
+  if(item==='server'){if(gs.money<800||gs.hasServer)return;gs.money-=800;gs.hasServer=true;}
+  else if(item==='proxy'){if(gs.money<1200)return;gs.money-=1200;gs.proxyEnd=Date.now()+120000;}
+  else if(item==='burn'){if(gs.money<600)return;gs.money-=600;addRisk(-30);}
+  else if(item==='ghost'){if(gs.money<2000||gs.ghostCharges>0)return;gs.money-=2000;gs.ghostCharges=5;}
+  document.getElementById('sh-money').textContent='$'+gs.money;buildShop();updateUI();
+}
+function buyUpg(k){
+  const u=UPGRADES[k];const lv=gs.upgrades[k];
+  if(lv>=u.maxLvl)return;const cost=u.cost[lv];
+  if(gs.money<cost)return;gs.money-=cost;gs.upgrades[k]++;
+  document.getElementById('sh-money').textContent='$'+gs.money;buildShop();updateUI();
+}
+
+/* ── EVENTS ── */
+function scheduleEvent(){clearTimeout(evTimer);evTimer=setTimeout(fireEvent,15000+Math.random()*12000);}
+function fireEvent(){
+  if(document.querySelector('.screen.active').id!=='hub'){scheduleEvent();return;}
+  const roll=Math.random();
+  if(roll<0.28){triggerRatEvent();return;}
+  if(roll<0.48){triggerPipeEvent();return;}
+  const evs=[[t('ev_isp'),()=>{addRisk(5);return'+5%';}],[t('ev_tax'),()=>{const a=10+Math.floor(Math.random()*41);gs.money=Math.max(0,gs.money-a);updateUI();return'-$'+a;}],[t('ev_enc'),()=>{addRisk(-10);return'-10%';}]];
+  const [txt,fn]=evs[Math.floor(Math.random()*evs.length)];
+  showEv(txt+' ('+fn()+')');
+  scheduleEvent();
+}
+function showEv(txt){
+  const o=document.getElementById('ev-overlay');
+  document.getElementById('ev-text').textContent=txt;
+  o.classList.add('show');setTimeout(()=>o.classList.remove('show'),2600);
+}
+
+/* ── RAT ── */
+function triggerRatEvent(){
+  document.getElementById('alert-wrap').style.display='block';
+  document.getElementById('alert-txt').textContent=t('alert_rat');
+  setTimeout(()=>{document.getElementById('alert-wrap').style.display='none';startRat();},2200);
+}
+function startRat(){
+  const ROWS=5,COLS=8,TOTAL=5+Math.floor(Math.random()*6);
+  const cells=Array.from({length:ROWS*COLS},(_,i)=>({isRat:false,done:false}));
+  const idx=Array.from({length:ROWS*COLS},(_,i)=>i).sort(()=>Math.random()-0.5);
+  idx.slice(0,TOTAL).forEach(i=>cells[i].isRat=true);
+  let killed=0,timeLeft=18;
+  document.getElementById('rat-title').textContent=t('rat_ttl');
+  document.getElementById('rat-sub').textContent=t('rat_sub');
+  document.getElementById('rat-hint').textContent=t('rat_hint');
+  document.getElementById('rat-score').textContent='0 / '+TOTAL+' KILLED';
+  document.getElementById('rat-prog').style.width='0%';
+  document.getElementById('rat-timer').textContent=timeLeft;
+  const grid=document.getElementById('rat-grid');
+  grid.innerHTML='';
+  const sysLabels=['SYS','SYS','NET','MEM','SYS'];
+  cells.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='rat-cell';
+    d.textContent=c.isRat?'PROC':sysLabels[Math.floor(Math.random()*sysLabels.length)];
+    d.onclick=()=>{
+      if(c.done)return;
+      c.done=true;
+      if(c.isRat){killed++;d.classList.add('hit');d.textContent='DEAD';document.getElementById('rat-score').textContent=killed+' / '+TOTAL+' KILLED';document.getElementById('rat-prog').style.width=Math.round(killed/TOTAL*100)+'%';if(killed>=TOTAL){clearInterval(ratTimer);endRat(true);}}
+      else{addRisk(10);d.classList.add('miss');d.textContent='ERR!';setTimeout(()=>{if(!c.done2){c.done=false;d.className='rat-cell';d.textContent=sysLabels[Math.floor(Math.random()*sysLabels.length)];}},700);}
+    };
+    grid.appendChild(d);
+  });
+  goTo('rat-event');
+  ratTimer=setInterval(()=>{timeLeft--;document.getElementById('rat-timer').textContent=timeLeft;if(timeLeft<=0){clearInterval(ratTimer);endRat(killed>=TOTAL);}},1000);
+}
+function endRat(ok){
+  document.getElementById('rat-hint').textContent=ok?t('rat_done'):t('rat_fail');
+  if(ok){gs.money+=300;updateUI();}else addRisk(25);
+  setTimeout(()=>{goTo('hub');scheduleEvent();},2000);
+}
+
+/* ── PIPE ── */
+function triggerPipeEvent(){startPipe();}
+function getDirIdx(fr,to){const dr=to.r-fr.r,dc=to.c-fr.c;if(dc===1)return 0;if(dr===1)return 1;if(dc===-1)return 2;return 3;}
+function startPipe(){
+  const COLS=6,ROWS=4;
+  const src={r:0,c:0},dst={r:ROWS-1,c:COLS-1};
+  const grid=Array.from({length:ROWS},()=>Array.from({length:COLS},()=>({type:0,rot:0,isPath:false,solvedRot:0})));
+  let path=[{r:0,c:0}];const vis=new Set(['0,0']);
+  while(true){
+    const last=path[path.length-1];
+    if(last.r===dst.r&&last.c===dst.c)break;
+    const dr=dst.r-last.r,dc=dst.c-last.c;
+    const moves=[];
+    if(Math.abs(dr)>=Math.abs(dc)){if(dr>0)moves.push({r:1,c:0});else moves.push({r:-1,c:0});}
+    else{if(dc>0)moves.push({r:0,c:1});else moves.push({r:0,c:-1});}
+    moves.push({r:0,c:1},{r:1,c:0},{r:0,c:-1},{r:-1,c:0});
+    let moved=false;
+    for(const m of moves){const nr=last.r+m.r,nc=last.c+m.c;if(nr<0||nr>=ROWS||nc<0||nc>=COLS||vis.has(nr+','+nc))continue;vis.add(nr+','+nc);path.push({r:nr,c:nc});moved=true;break;}
+    if(!moved)break;
+  }
+  for(let i=0;i<path.length;i++){
+    const p=path[i],prev=i>0?path[i-1]:null,next=i<path.length-1?path[i+1]:null;
+    let dirs=[];
+    if(prev)dirs.push(getDirIdx(p,prev));
+    if(next)dirs.push(getDirIdx(p,next));
+    let type=1,rot=0;
+    if(dirs.length===2){
+      dirs.sort((a,b)=>a-b);const key=dirs.join(',');
+      const s={'0,2':0,'1,3':1};const c={'0,1':0,'1,2':1,'2,3':2,'0,3':3};
+      if(s[key]!==undefined){type=1;rot=s[key];}
+      else if(c[key]!==undefined){type=2;rot=c[key];}
+    }
+    grid[p.r][p.c]={type,rot,isPath:true,solvedRot:rot};
+  }
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(!grid[r][c].isPath)grid[r][c]={type:Math.floor(Math.random()*2)+1,rot:Math.floor(Math.random()*4),isPath:false,solvedRot:0};
+  path.forEach(p=>{const cell=grid[p.r][p.c];cell.rot=(cell.solvedRot+1+Math.floor(Math.random()*3))%4;});
+  pipeState={grid,ROWS,COLS,src,dst,path,timeLeft:35,timer:null};
+  document.getElementById('pipe-title').textContent=t('pipe_ttl');
+  document.getElementById('pipe-sub').textContent=t('pipe_sub');
+  document.getElementById('pipe-hint').textContent=t('pipe_hint');
+  document.getElementById('pipe-timer').textContent=35;
+  renderPipeGrid();
+  goTo('pipe-event');
+  pipeState.timer=setInterval(()=>{pipeState.timeLeft--;document.getElementById('pipe-timer').textContent=pipeState.timeLeft;if(pipeState.timeLeft<=0){clearInterval(pipeState.timer);endPipe(false);}},1000);
+}
+function renderPipeGrid(){
+  const{grid,ROWS,COLS,src,dst}=pipeState;
+  const g=document.getElementById('pipe-grid');
+  g.style.gridTemplateColumns=`repeat(${COLS},54px)`;
+  g.style.gridTemplateRows=`repeat(${ROWS},54px)`;
+  g.innerHTML='';
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const cell=grid[r][c],isSrc=r===src.r&&c===src.c,isDst=r===dst.r&&c===dst.c;
+    const div=document.createElement('div');
+    div.className='pcell'+(isSrc?' src':isDst?' dst':'');
+    if(!isSrc&&!isDst)div.onclick=()=>{grid[r][c].rot=(grid[r][c].rot+1)%4;renderPipeGrid();};
+    div.innerHTML=pipeSVG(cell.type,cell.rot,isSrc,isDst);
+    g.appendChild(div);
+  }
+}
+function pipeSVG(type,rot,isSrc,isDst){
+  if(isSrc)return`<svg viewBox="0 0 44 44"><circle cx="22" cy="22" r="10" fill="#00ff41"/><text x="22" y="27" text-anchor="middle" font-family="Share Tech Mono" font-size="9" fill="#001a00">SRC</text></svg>`;
+  if(isDst)return`<svg viewBox="0 0 44 44"><rect x="12" y="12" width="20" height="20" rx="2" fill="#ffaa00"/><text x="22" y="27" text-anchor="middle" font-family="Share Tech Mono" font-size="9" fill="#1a0800">DST</text></svg>`;
+  const pipes={1:`<line x1="0" y1="22" x2="44" y2="22" stroke="#00aaff" stroke-width="5"/>`,2:`<line x1="22" y1="22" x2="44" y2="22" stroke="#00aaff" stroke-width="5"/><line x1="22" y1="0" x2="22" y2="22" stroke="#00aaff" stroke-width="5"/>`,3:`<line x1="0" y1="22" x2="44" y2="22" stroke="#00aaff" stroke-width="5"/><line x1="22" y1="22" x2="22" y2="44" stroke="#00aaff" stroke-width="5"/>`};
+  return type===0?'':(`<svg viewBox="0 0 44 44"><g transform="rotate(${rot*90},22,22)">${pipes[type]||''}</g></svg>`);
+}
+function checkPipe(){
+  let ok=true;
+  pipeState.path.forEach(p=>{const c=pipeState.grid[p.r][p.c];if(c.isPath&&c.rot!==c.solvedRot)ok=false;});
+  clearInterval(pipeState.timer);endPipe(ok);
+}
+function endPipe(ok){
+  if(pipeState&&pipeState.timer)clearInterval(pipeState.timer);
+  document.getElementById('pipe-hint').textContent=ok?t('pipe_ok'):t('pipe_fail');
+  if(ok){addRisk(-15);gs.money+=500;updateUI();}else addRisk(20);
+  setTimeout(()=>{goTo('hub');scheduleEvent();},2000);
+}
+
+/* ── GAME OVER / RESET ── */
+function gameOver(){
+  if(hackAnim){cancelAnimationFrame(hackAnim);hackAnim=null;}
+  clearTimeout(evTimer);if(ratTimer)clearInterval(ratTimer);
+  if(pipeState&&pipeState.timer)clearInterval(pipeState.timer);
+  document.getElementById('go-ttl').textContent=t('go_ttl');
+  document.getElementById('go-sub').textContent=t('go_sub');
+  document.getElementById('go-stats').innerHTML=t('earned')+': $'+gs.money+'<br>'+t('hacked')+': '+gs.hacks+'<br>'+t('risk_lbl')+': '+Math.round(gs.risk)+'%';
+  document.getElementById('go-restart').textContent=t('restart');
+  goTo('gameover');
+}
+function resetGame(){
+  if(hackAnim){cancelAnimationFrame(hackAnim);hackAnim=null;}
+  clearTimeout(evTimer);if(ratTimer)clearInterval(ratTimer);
+  if(pipeState&&pipeState.timer)clearInterval(pipeState.timer);
+  const u=gs.username;
+  gs={money:0,risk:0,hacks:0,username:u,hasServer:false,proxyEnd:0,ghostCharges:0,upgrades:{coffee:0,school:0,sbu:0},currentTarget:null};
+  hackX=0;hackDir=1;hackLocked=false;hackRdy=true;shopTab=0;pipeState=null;
+  goTo('hub');
+}
+
+/* ── KEYS ── */
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){e.preventDefault();
+    const a=document.querySelector('.screen.active');
+    if(a.id==='hacking')doHack();
+    if(a.id==='login')doLogin();
+  }
+  if(e.code==='Escape'){const a=document.querySelector('.screen.active');if(a.id==='hacking')abortHack();}
+});
+document.getElementById('uname').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+setLang('en');
+</script>
